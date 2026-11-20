@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0F7D6A">
+<title>CITYMED - демо онлайн-записи в Telegram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script id="tgsdk" src="https://telegram.org/js/telegram-web-app.js" async></script>
+<style>
+:root{
+  --teal:#0F7D6A;--teal-2:#02B3AC;--teal-ink:#0A5A4C;--teal-50:#E6F4F0;
+  --sun:#FCAC26;--sun-ink:#1B1B1B;--coral:#FF8562;
+  --bg2:#F2F7FA;--line:#E3EAEF;--ink:#111417;--text:#3B434B;--hint:#87909A;
+  --ok:#17905A;--warn:#B86E00;--danger:#CF3F3F;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --panel:"Onest",var(--sys);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:var(--sys);color:var(--ink);background:var(--bg2);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:inherit}
+a{color:inherit;text-decoration:none}
+input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal-2);outline-offset:2px}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- каркас ---------- */
+.stage{min-height:100dvh}
+.panel{display:none}
+.device,.phone{height:100dvh}
+.app{position:relative;height:100%;display:flex;flex-direction:column;background:var(--bg2);overflow:hidden;isolation:isolate}
+.sbar{display:none}
+
+/* шапка Telegram (в настоящем Telegram её рисует сам мессенджер) */
+.tg-head{flex:none;display:grid;grid-template-columns:100px 1fr 100px;align-items:center;height:52px;padding:0 6px;background:#fff;border-bottom:1px solid var(--line)}
+.tg-btn{display:inline-flex;align-items:center;gap:1px;height:38px;padding:0 8px;border-radius:10px;color:var(--teal);font-size:15.5px;font-weight:500;white-space:nowrap}
+.tg-btn svg.i{width:20px;height:20px}
+.tg-btn:active{background:var(--teal-50)}
+.tg-head .r{justify-self:end}
+.tg-title{text-align:center;line-height:1.15;min-width:0}
+.tg-title b{display:block;font-size:16px;font-weight:600}
+.tg-title span{font-size:12px;color:var(--hint)}
+.ribbon{flex:none;padding:6px 12px;font-size:11.5px;line-height:1.35;text-align:center;background:#FFF6E2;color:#6B4800;border-bottom:1px solid #F3DDAA}
+.in-tg .tg-head,.in-tg .sbar{display:none!important}
+
+.screens{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.scr{padding:16px 16px 28px}
+.enter{animation:enter .26s cubic-bezier(.2,.8,.2,1)}
+.enter-back{animation:enterBack .26s cubic-bezier(.2,.8,.2,1)}
+@keyframes enter{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes enterBack{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+
+.h{margin:2px 0 4px;font-size:22px;line-height:1.2;font-weight:700;letter-spacing:-.01em}
+.sub{margin:0 0 14px;color:var(--text);font-size:14.5px;line-height:1.45}
+.h3{display:flex;align-items:baseline;gap:8px;margin:18px 2px 10px;font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--hint)}
+.h3 .hint{text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:600;color:var(--teal)}
+
+/* ---------- главная ---------- */
+.hero{position:relative;padding:18px 18px 16px;border-radius:22px;background:#fff;box-shadow:0 1px 0 var(--line);overflow:hidden}
+.hero::after{content:"";position:absolute;right:-70px;top:-80px;width:220px;height:220px;border-radius:50%;background:radial-gradient(closest-side,rgba(2,179,172,.2),transparent);pointer-events:none}
+.logo{display:block;height:30px;width:auto}
+.logo-txt{display:inline-block;font-weight:800;font-size:20px;letter-spacing:.06em;color:var(--teal)}
+.hero h1{margin:14px 0 6px;font-size:24px;line-height:1.15;letter-spacing:-.015em}
+.hero p{margin:0;color:var(--text);font-size:14.5px;line-height:1.45}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tile{display:flex;flex-direction:column;gap:6px;min-height:140px;padding:14px;border-radius:20px;background:#fff;box-shadow:0 1px 0 var(--line);transition:transform .12s}
+.tile:active{transform:scale(.98)}
+.tile .ico{width:44px;height:44px;margin-bottom:8px}
+.tile b{font-size:16.5px;line-height:1.2}
+.tile small{color:var(--hint);font-size:12.5px;line-height:1.35}
+.tile.primary{background:linear-gradient(160deg,#12886F 0%,var(--teal) 55%,#0B6656 100%);color:#fff}
+.tile.primary .ico{background:rgba(255,255,255,.16);color:#fff}
+.tile.primary small{color:rgba(255,255,255,.8)}
+.ico{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--teal-50);color:var(--teal);flex:none}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.q{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:16px;background:#fff;box-shadow:0 1px 0 var(--line);font-size:12.5px;font-weight:500;text-align:center}
+.q svg.i{color:var(--teal)}
+.badge{position:absolute;top:7px;right:12px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--coral);color:#fff;font-style:normal;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+.card{padding:4px 14px;border-radius:18px;background:#fff;box-shadow:0 1px 0 var(--line)}
+.info{margin-top:10px}
+.row{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row>svg.i{color:var(--teal);margin-top:1px}
+.row b{display:block;font-size:14.5px;font-weight:600;line-height:1.3}
+.row small{display:block;margin-top:2px;color:var(--hint);font-size:12.5px;line-height:1.35}
+
+/* ---------- списки ---------- */
+.list{border-radius:18px;background:#fff;box-shadow:0 1px 0 var(--line);overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 12px 12px 14px;border-bottom:1px solid var(--line);text-align:left}
+.item:last-child{border-bottom:0}
+.item:active{background:var(--bg2)}
+.grow{flex:1;min-width:0}
+.item b{display:block;font-size:15.5px;font-weight:600}
+.item small{display:block;margin-top:2px;color:var(--hint);font-size:12.5px;line-height:1.35}
+.item>svg.i:last-child,.doc>svg.i:last-child{width:18px;height:18px;color:#B6BEC6}
+.tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF1D6;color:#7E5300;font-style:normal;font-size:11px;font-weight:700;vertical-align:2px}
+
+.doc{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:10px;padding:14px 12px 14px 14px;border-radius:18px;background:#fff;box-shadow:0 1px 0 var(--line);text-align:left}
+.ava{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(140deg,var(--teal-2),var(--teal));color:#fff;font-weight:700;font-size:17px;letter-spacing:.02em;flex:none}
+.doc b{display:block;font-size:15.5px;line-height:1.3;font-weight:600}
+.doc small{display:block;margin-top:2px;color:var(--text);font-size:13px;line-height:1.35}
+.chip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:4px 9px 4px 7px;border-radius:999px;background:var(--teal-50);color:var(--teal-ink);font-size:12.5px;font-weight:600}
+.chip svg.i{width:15px;height:15px}
+
+/* ---------- дата и время ---------- */
+.who{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:#fff;box-shadow:0 1px 0 var(--line)}
+.who .ava{width:44px;height:44px;font-size:15px}
+.who b{display:block;font-size:15px;font-weight:600;line-height:1.3}
+.who small{display:block;margin-top:1px;color:var(--hint);font-size:12.5px}
+.dates{display:flex;gap:8px;margin:0 -16px;padding:2px 16px 6px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:16px;scrollbar-width:none}
+.dates::-webkit-scrollbar{display:none}
+.date{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:58px;height:72px;border-radius:16px;background:#fff;box-shadow:0 1px 0 var(--line);text-align:center;scroll-snap-align:start}
+.date small{font-size:12px;color:var(--hint)}
+.date b{font-size:19px;line-height:1.2;font-weight:700}
+.date i{min-height:11px;font-style:normal;font-size:9.5px;color:var(--hint)}
+.date.on{background:var(--teal);color:#fff;box-shadow:0 8px 18px -10px rgba(15,125,106,.9)}
+.date.on small{color:rgba(255,255,255,.82)}
+.date:disabled{background:transparent;box-shadow:inset 0 0 0 1px var(--line);opacity:.65;cursor:default}
+.part{margin:12px 2px 8px;font-size:12.5px;font-weight:600;color:var(--text)}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot{height:42px;border-radius:12px;background:#fff;box-shadow:0 1px 0 var(--line);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;text-align:center}
+.slot.on{background:var(--teal);color:#fff}
+.slot:disabled{background:transparent;box-shadow:none;color:#B6BEC6;text-decoration:line-through;cursor:default}
+.empty{margin:8px 2px;color:var(--hint);font-size:14px}
+
+/* ---------- данные пациента ---------- */
+.summary-mini{padding:0;overflow:hidden}
+.summary-mini .who{border-radius:0;box-shadow:none}
+.when{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--line);font-size:14.5px;font-weight:600;color:var(--teal-ink)}
+.when svg.i{width:18px;height:18px}
+.tgfill{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:46px;margin-bottom:12px;border-radius:14px;background:#E7F2FB;color:#1C77BC;font-size:14.5px;font-weight:600;text-align:center}
+.tgfill svg.i{width:19px;height:19px}
+.field{display:block;margin-bottom:12px}
+.field>span{display:block;margin:0 2px 6px;font-size:13px;font-weight:500;color:var(--text)}
+.field em{font-style:normal;font-weight:400;color:var(--hint)}
+.field input,.field textarea{display:block;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:16px;outline:none;transition:border-color .15s,box-shadow .15s}
+.field textarea{resize:none;line-height:1.4}
+.field input:focus,.field textarea:focus{border-color:var(--teal-2);box-shadow:0 0 0 3px rgba(2,179,172,.16)}
+.consent{display:flex;align-items:center;gap:10px;margin:4px 2px 12px;font-size:13.5px;color:var(--text);cursor:pointer}
+.consent input{width:20px;height:20px;margin:0;accent-color:var(--teal);flex:none}
+.fine{display:flex;gap:8px;align-items:flex-start;margin:0 2px;color:var(--hint);font-size:13px;line-height:1.4}
+.fine svg.i{width:17px;height:17px;color:var(--teal)}
+
+/* ---------- готово ---------- */
+.center{text-align:center}
+.okmark{display:grid;place-items:center;width:78px;height:78px;margin:8px auto 14px;border-radius:50%;background:var(--teal);color:#fff;box-shadow:0 14px 30px -12px rgba(15,125,106,.75);animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+.okmark svg.i{width:38px;height:38px;stroke-width:2.4}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+.ticket{margin-top:6px;text-align:left}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ghost{display:flex;align-items:center;justify-content:center;gap:7px;height:46px;padding:0 8px;border-radius:14px;background:#fff;box-shadow:0 1px 0 var(--line);font-size:14.5px;font-weight:600;color:var(--teal-ink);text-align:center}
+.ghost svg.i{width:19px;height:19px}
+.ghost.danger{color:var(--danger)}
+.next{margin-top:18px;text-align:left}
+.next>p{margin:0 2px 8px;font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--hint)}
+.link{display:flex;align-items:center;gap:10px;width:100%;margin-bottom:8px;padding:13px 14px;border-radius:16px;background:#fff;box-shadow:0 1px 0 var(--line);font-size:15px;font-weight:600;text-align:left}
+.link svg.i{color:var(--teal)}
+.link svg.i:last-child{margin-left:auto;width:18px;height:18px;color:#B6BEC6}
+
+/* ---------- мои записи ---------- */
+.mine{margin-bottom:10px;padding-bottom:12px}
+.mine.off{opacity:.6}
+.mine .btnrow{margin-top:2px}
+.emptybox{display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 18px;border-radius:18px;background:#fff;box-shadow:0 1px 0 var(--line);text-align:center;color:var(--text);font-size:14.5px;line-height:1.45}
+.emptybox>svg.i{width:34px;height:34px;color:var(--teal)}
+.emptybox p{margin:0}
+.emptybox .ghost{width:100%;background:var(--teal-50);box-shadow:none}
+
+/* ---------- чат и ресепшен ---------- */
+.chatwrap{padding:0}
+.chat-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--line)}
+.botava{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:linear-gradient(140deg,var(--teal-2),var(--teal));color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;flex:none}
+.botava.sm{width:26px;height:26px;font-size:9.5px}
+.chat-head b{display:block;font-size:15px}
+.chat-head small{font-size:12.5px;color:var(--hint)}
+.wall{background:
+  radial-gradient(circle at 20% 30%,rgba(255,255,255,.22) 0 2px,transparent 3px) 0 0/34px 34px,
+  radial-gradient(circle at 70% 80%,rgba(255,255,255,.16) 0 1.5px,transparent 2.5px) 0 0/26px 26px,
+  linear-gradient(160deg,#D3E7C8 0%,#B6DAC7 55%,#A3CFCB 100%)}
+.chat{min-height:330px;padding:14px 10px 18px}
+.sys{width:max-content;max-width:90%;margin:0 auto 10px;padding:3px 10px;border-radius:999px;background:rgba(20,50,40,.28);color:#fff;font-size:12.5px;font-weight:500}
+.bubble{position:relative;max-width:88%;margin:0 0 6px;padding:8px 12px 20px;border-radius:16px;font-size:15px;line-height:1.4;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.bubble.in{background:#fff;border-bottom-left-radius:6px}
+.bubble.out{margin-left:auto;background:#E1FBC8;border-bottom-right-radius:6px}
+.bubble p{margin:0 0 3px}
+.bubble .tm{position:absolute;right:10px;bottom:4px;font-size:11px;color:#8CA097}
+.bname{display:block;margin-bottom:3px;color:var(--teal);font-size:13.5px;font-weight:700}
+.bsrc{margin-top:4px!important;color:var(--hint);font-size:12.5px}
+.kb{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:88%;margin:0 0 10px}
+.kb button{display:flex;align-items:center;justify-content:center;min-height:38px;padding:6px 4px;border-radius:10px;background:rgba(26,64,52,.4);color:#fff;font-size:13px;font-weight:600;text-align:center;line-height:1.2}
+.kb button:disabled{opacity:.5;cursor:default}
+.kb.two{grid-template-columns:1fr 1fr}
+.kb.two button:first-child{grid-column:1/-1}
+.note{margin:12px 16px 20px;color:var(--text);font-size:13.5px;line-height:1.45}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:#E2E9EE}
+.seg button{min-height:38px;padding:4px 6px;border-radius:10px;font-size:13px;font-weight:600;line-height:1.15;color:var(--text);text-align:center}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.feed{margin-top:12px;padding:12px 10px 4px;border-radius:18px}
+.grp{display:flex;align-items:center;gap:8px;margin:0 2px 10px;color:#163F33;font-size:13px;font-weight:700}
+.grp small{font-weight:500;opacity:.75}
+.msg{margin-bottom:12px}
+.msg .bubble,.msg .kb{max-width:100%}
+.msg.new{animation:msgIn .5s cubic-bezier(.2,1.2,.4,1)}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.stat{display:inline-block;margin:0 0 2px 2px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.88);font-size:12.5px;font-weight:600;line-height:1.35}
+.stat.ok{color:var(--ok)}.stat.wait{color:var(--warn)}.stat.bad{color:var(--danger)}
+.placeholder{padding:18px 12px 22px;color:#1F4B3E;font-size:14px;line-height:1.45;text-align:center}
+.how{margin-top:12px;padding:12px 14px;border-radius:16px;background:#fff;box-shadow:0 1px 0 var(--line);font-size:14px;line-height:1.5;color:var(--text)}
+.how b{color:var(--ink)}
+.how small{display:block;margin-top:6px;font-size:12.5px;color:var(--hint)}
+
+/* ---------- главная кнопка, тост, шторка ---------- */
+.mainbar{flex:none;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line)}
+.mainbar[hidden]{display:none}
+.mainbtn{display:block;width:100%;height:52px;border-radius:14px;background:var(--sun);color:var(--sun-ink);font-size:16px;font-weight:700;text-align:center;transition:transform .1s,opacity .15s}
+.mainbtn:active{transform:scale(.99)}
+.mainbtn:disabled{opacity:.42;cursor:default}
+.toast{position:absolute;left:12px;right:12px;bottom:86px;z-index:20;padding:11px 14px;border-radius:14px;background:rgba(17,20,23,.92);color:#fff;font-size:13.5px;line-height:1.4;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+.sheet{position:absolute;inset:0;z-index:30;display:none}
+.sheet.open{display:block}
+.scrim{position:absolute;inset:0;background:rgba(10,20,18,.38)}
+.sbody{position:absolute;left:0;right:0;bottom:0;max-height:88%;overflow:auto;padding:10px 18px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:#fff;animation:up .25s ease}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.grab{width:40px;height:5px;margin:0 auto 14px;border-radius:3px;background:#D4DBE1}
+.sbody h3{margin:0 0 8px;font-size:20px;line-height:1.2}
+.sbody>p{margin:0 0 14px;color:var(--text);font-size:14.5px;line-height:1.5}
+.sbody .how{box-shadow:none;background:var(--bg2)}
+.sbody .mainbtn{margin-top:14px}
+
+/* пункты (шторка и панель) */
+.points{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.points li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;font-size:14.5px;line-height:1.45;color:var(--text)}
+.points li b{color:var(--ink)}
+.points .n{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--teal-50);color:var(--teal);font-weight:800;font-size:14px}
+.byline{margin:16px 0 0;color:var(--hint);font-size:13px;line-height:1.5}
+.byline a{color:var(--teal-ink);font-weight:600}
+
+/* ---------- десктоп: телефон + панель ---------- */
+@media (min-width:1000px){
+  body{background:
+    radial-gradient(900px 600px at 0% 0%,rgba(2,179,172,.16),transparent 60%),
+    radial-gradient(700px 520px at 100% 100%,rgba(252,172,38,.17),transparent 60%),
+    #EDF3F5;background-attachment:fixed}
+  .stage{--top:max(28px,calc((100dvh - 860px) / 2));display:grid;grid-template-columns:minmax(380px,540px) 390px;gap:clamp(40px,6vw,88px);align-items:start;justify-content:center;padding:var(--top) 40px 40px}
+  .panel{display:block;font-family:var(--panel)}
+  .device{position:sticky;top:var(--top);height:auto}
+  .phone{position:relative;width:390px;height:min(820px,calc(100dvh - 72px));padding:11px;border-radius:54px;background:#0E1316;box-shadow:0 50px 90px -40px rgba(9,56,48,.55),inset 0 0 0 1.5px #2B3439}
+  .phone .app{border-radius:43px}
+  .sbar{display:flex;flex:none;align-items:center;justify-content:space-between;height:42px;padding:0 28px 0 32px;background:#fff;font-size:14.5px;font-weight:600}
+  .sbar .isl{width:112px;height:31px;border-radius:20px;background:#0E1316}
+  .sbar .sig{display:flex;align-items:center;gap:5px}
+  .sbar .sig i{display:block;width:3px;border-radius:1px;background:var(--ink)}
+  .sbar .bat{width:24px;height:12px;border:1.5px solid var(--ink);border-radius:4px;padding:1.5px;margin-left:4px}
+  .sbar .bat::before{content:"";display:block;width:70%;height:100%;border-radius:1.5px;background:var(--ink)}
+  .toast{bottom:92px}
+  .in-tg .stage{display:block;padding:0}
+  .in-tg .panel{display:none}
+  .in-tg .phone{width:auto;height:100dvh;padding:0;border-radius:0;background:none;box-shadow:none}
+  .in-tg .phone .app{border-radius:0}
+
+  .pbrand{display:flex;align-items:center;gap:12px;margin:6px 0 20px}
+  .pbrand .logo{height:30px}
+  .pbrand .x{color:var(--hint);font-weight:500}
+  .tgpill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:999px;background:#E3F0FA;color:#1C77BC;font-size:13px;font-weight:600}
+  .tgpill svg.i{width:16px;height:16px}
+  .panel h1{margin:0 0 12px;font-size:clamp(30px,2.7vw,40px);line-height:1.08;letter-spacing:-.025em;font-weight:800}
+  .panel h1 em{font-style:normal;color:var(--teal)}
+  .panel .lead{max-width:50ch;margin:0 0 18px;font-size:16px;line-height:1.5;color:var(--text)}
+  .panel .points{gap:8px;margin-bottom:20px}
+  .panel .points li{font-size:14.5px}
+  .panel .points .n{background:#fff;box-shadow:0 1px 0 var(--line)}
+  .deskbox{padding:16px;border-radius:22px;background:rgba(255,255,255,.72);backdrop-filter:blur(8px);box-shadow:0 1px 0 var(--line),0 24px 44px -32px rgba(9,56,48,.4)}
+  .deskbox h2{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:16px;font-weight:700}
+  .deskbox h2 svg.i{color:var(--teal)}
+  .live{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:600;color:var(--ok)}
+  .live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(23,144,90,.45)}100%{box-shadow:0 0 0 9px rgba(23,144,90,0)}}
+  .deskbox .feed{max-height:270px;overflow:auto}
+  .deskbox .how{background:rgba(255,255,255,.9)}
+}
+@media (prefers-reduced-motion:reduce){.enter,.enter-back,.okmark,.msg.new,.sbody{animation:none}.live::before{animation:none}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="panel" id="panel" aria-label="О демо"></aside>
+  <div class="device"><div class="phone">
+    <div class="app" id="app">
+      <div class="sbar" aria-hidden="true"><span id="sb-time">9:41</span><span class="isl"></span><span class="sig"><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i><i style="height:11px"></i><span class="bat"></span></span></div>
+      <header class="tg-head">
+        <button class="tg-btn" id="tg-left" data-act="back"></button>
+        <div class="tg-title"><b>CITYMED</b><span>мини-приложение</span></div>
+        <button class="tg-btn r" data-act="sheet" aria-label="О демо"></button>
+      </header>
+      <div class="ribbon">Демо-концепт для CITYMED · расписание условное, данные никуда не отправляются</div>
+      <main class="screens" id="screens" aria-live="polite"></main>
+      <div class="mainbar" id="mainbar" hidden><button class="mainbtn" id="mainbtn" data-act="main"></button></div>
+      <div class="toast" id="toast" role="status"></div>
+      <div class="sheet" id="sheet"></div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var LOGO='https://static.tildacdn.net/tild3436-3338-4339-a238-303739623334/logo_citymed.png';
+var MAP='https://yandex.uz/maps/?text='+encodeURIComponent('Ташкент, улица Фаробий, 415');
+
+var ICON={
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  chev:'<path d="M9 6l6 6-6 6"/>',
+  steth:'<path d="M5 3v5a4 4 0 0 0 8 0V3"/><path d="M9 12v2.5a5.5 5.5 0 0 0 11 0V12"/><circle cx="20" cy="10" r="2"/>',
+  scan:'<rect x="2.5" y="5" width="19" height="14" rx="7"/><circle cx="12" cy="12" r="3.2"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11.2a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.6"/>',
+  phone:'<path d="M5 3.5h3.6l1.9 4.8-2.4 1.5a11.5 11.5 0 0 0 6.1 6.1l1.5-2.4 4.8 1.9V19a2 2 0 0 1-2 2A17.5 17.5 0 0 1 3 5.5a2 2 0 0 1 2-2z"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  heart:'<path d="M12 20s-7.5-4.6-9.2-9.4A4.9 4.9 0 0 1 12 7a4.9 4.9 0 0 1 9.2 3.6C19.5 15.4 12 20 12 20z"/><path d="M5 12h3.5l1.5-2.5 2.5 5 1.5-2.5H19"/>',
+  brain:'<path d="M9.5 4.5A3 3 0 0 0 6.6 7 3.2 3.2 0 0 0 4.5 12a3.2 3.2 0 0 0 2 4.9A3 3 0 0 0 12 18V6.2a2.4 2.4 0 0 0-2.5-1.7z"/><path d="M14.5 4.5A3 3 0 0 1 17.4 7a3.2 3.2 0 0 1 2.1 5 3.2 3.2 0 0 1-2 4.9A3 3 0 0 1 12 18"/>',
+  drop:'<path d="M12 3.5s6 6.3 6 10.7a6 6 0 0 1-12 0C6 9.8 12 3.5 12 3.5z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>',
+  wave:'<path d="M2.5 12c1.6-3.6 3.2-3.6 4.8 0s3.2 3.6 4.7 0 3.2-3.6 4.8 0 3.1 3.6 4.7 0"/>',
+  scope:'<path d="M4 20.5c4.2 0 6-2.8 6-6.5V8.5a3 3 0 0 1 6 0v1.5"/><circle cx="16" cy="13" r="2.6"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+  list:'<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r="1.1"/><circle cx="4.8" cy="12" r="1.1"/><circle cx="4.8" cy="17.5" r="1.1"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4"/>',
+  route:'<circle cx="6" cy="16" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M8.5 16h6.5a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/>',
+  bell:'<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.8 1.8H4.2z"/><path d="M10 21a2.2 2.2 0 0 0 4 0"/>',
+  desk:'<rect x="3" y="4" width="18" height="12" rx="2.5"/><path d="M8 20h8M12 16v4"/>',
+  send:'<path d="M21 3.5L3.5 10.6l6.4 2.3 2.3 6.6L21 3.5z"/><path d="M9.9 12.9L21 3.5"/>',
+  dots:'<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>'
+};
+function ic(n){return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+(ICON[n]||'')+'</svg>'}
+
+/* ---------- данные с сайта citymed.uz ---------- */
+var SPECS=[
+  {id:'cardio',name:'Кардиолог',icon:'heart'},
+  {id:'neuro',name:'Невролог',icon:'brain'},
+  {id:'endo',name:'Эндокринолог',icon:'drop'},
+  {id:'thera',name:'Терапевт',icon:'steth'},
+  {id:'uzi',name:'Специалист по УЗИ',icon:'wave'},
+  {id:'endoscopy',name:'Врач-эндоскопист',icon:'scope'}
+];
+var DOCTORS=[
+  {id:'norboev',name:'Норбоев Шавкат Турдикулович',spec:'cardio',exp:18},
+  {id:'minibaeva',name:'Минибаева Дина Мансуровна',spec:'neuro',exp:24},
+  {id:'abdullaeva',name:'Абдуллаева Нигора Уматкуловна',spec:'neuro',title:'Невропатолог',exp:18},
+  {id:'mahmudova',name:'Махмудова Гузалхон Саидкаримовна',spec:'endo',exp:24},
+  {id:'karimova',name:'Каримова Нигора Азаматовна',spec:'thera',exp:20},
+  {id:'yunusova',name:'Юнусова Муборак Турабековна',spec:'uzi',exp:28,extra:'врач высшей категории'},
+  {id:'abdullaev',name:'Абдуллаев Бобур Дилшодович',spec:'endoscopy'}
+];
+var DIAG=[
+  {id:'mrt',name:'МРТ',sub:'Магнитно-резонансная томография',badge:'24/7',icon:'scan',min:40},
+  {id:'mskt',name:'МСКТ',sub:'Компьютерная томография',icon:'scan',min:20},
+  {id:'uzi',name:'УЗИ',sub:'Ультразвуковое исследование',icon:'wave',min:20},
+  {id:'echo',name:'ЭхоКГ',sub:'УЗИ сердца',icon:'heart',min:30},
+  {id:'eeg',name:'ЭЭГ',sub:'Электроэнцефалография',icon:'brain',min:30},
+  {id:'xray',name:'Рентгенография',sub:'Рентгеновский снимок',icon:'scan',min:15},
+  {id:'fibro',name:'Фиброскан',sub:'Эластография печени',icon:'drop',min:20},
+  {id:'gastro',name:'Гастроскопия',sub:'Нужна подготовка',icon:'scope',prep:true,min:30},
+  {id:'colono',name:'Колоноскопия',sub:'Нужна подготовка',icon:'scope',prep:true,min:40}
+];
+
+var st={screen:'home',stack:[],flow:null,spec:null,doc:null,diag:null,date:null,time:null,
+  name:'',phone:'+998 ',note:'',consent:true,bookings:[],current:null,moving:null,
+  aurora:'api',lastId:1046,tg:null,run:null,synced:0};
+
+/* ---------- даты ---------- */
+function pad(n){return (n<10?'0':'')+n}
+function sod(d){var x=new Date(d);x.setHours(0,0,0,0);return x}
+function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function parseYmd(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function today(){return sod(new Date())}
+var fWd=new Intl.DateTimeFormat('ru-RU',{weekday:'short'});
+var fFull=new Intl.DateTimeFormat('ru-RU',{weekday:'short',day:'numeric',month:'long'});
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function wdS(d){return fWd.format(d).replace('.','')}
+function dd(d){return Math.round((sod(d)-today())/864e5)}
+function relDay(d){var k=dd(d);return k===0?'Сегодня':k===1?'Завтра':cap(fFull.format(d))}
+function relLow(d){var k=dd(d);return k===0?'сегодня':k===1?'завтра':fFull.format(d)}
+function longDate(d){return cap(fFull.format(d))}
+function hm(d){return pad(d.getHours())+':'+pad(d.getMinutes())}
+
+/* условное расписание: часы работы с сайта, занятость - псевдослучайная */
+function hoursFor(date,key){
+  if(key==='diag:mrt')return [7,23];
+  var w=date.getDay();
+  if(w===0)return null;
+  return w===6?[8,16]:[8,17];
+}
+function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function slotsFor(date,key){
+  var h=hoursFor(date,key);if(!h)return [];
+  var now=new Date(),isT=ymd(date)===ymd(now),nowM=now.getHours()*60+now.getMinutes(),out=[];
+  for(var m=h[0]*60;m<h[1]*60;m+=30){
+    var t=pad(Math.floor(m/60))+':'+pad(m%60);
+    if(isT&&m<=nowM+20)continue;
+    out.push({t:t,off:hash(key+'|'+ymd(date)+'|'+t)%100<40});
+  }
+  return out;
+}
+function nearest(key){
+  for(var i=0;i<14;i++){var d=addDays(today(),i),s=slotsFor(d,key).filter(function(x){return !x.off})[0];if(s)return {d:d,t:s.t}}
+  return null;
+}
+function nearestAny(docs){
+  var best=null;
+  docs.forEach(function(d){var n=nearest('doc:'+d.id);if(n&&(!best||n.d<best.d||(+n.d===+best.d&&n.t<best.t)))best=n});
+  return best;
+}
+
+/* ---------- мелочи ---------- */
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function plural(n,a,b,c){var m=n%10,h=n%100;return m===1&&h!==11?a:(m>=2&&m<=4&&(h<10||h>=20)?b:c)}
+function specName(id){var s=SPECS.filter(function(x){return x.id===id})[0];return s?s.name:''}
+function docTitle(d){return d.title||specName(d.spec)}
+function shortName(n){var p=n.split(' ');return p[0]+(p[1]?' '+p[1][0]+'.':'')+(p[2]?' '+p[2][0]+'.':'')}
+function initials(n){var p=n.split(' ');return (p[1]?p[1][0]:'')+(p[0]?p[0][0]:'')}
+function firstName(n){var p=n.trim().split(/\s+/);return p[0]||''}
+function curDoc(){return DOCTORS.filter(function(d){return d.id===st.doc})[0]}
+function curDiag(){return DIAG.filter(function(d){return d.id===st.diag})[0]}
+function curKey(){return st.flow==='doctor'?'doc:'+st.doc:'diag:'+st.diag}
+function byId(id){return st.bookings.filter(function(b){return b.id===id})[0]}
+function digits(s){return String(s).replace(/\D/g,'')}
+function fmtPhone(v){
+  var d=digits(v);
+  if(d.indexOf('998')!==0)d='998'+d;
+  d=d.slice(0,12);
+  var p=d.slice(3),o='+998 ';
+  if(p.length)o+=p.slice(0,2);
+  if(p.length>2)o+=' '+p.slice(2,5);
+  if(p.length>5)o+='-'+p.slice(5,7);
+  if(p.length>7)o+='-'+p.slice(7,9);
+  return o;
+}
+function valid(){return st.name.trim().length>=2&&digits(st.phone).length===12&&st.consent}
+function openNow(){
+  var n=new Date(),w=n.getDay(),m=n.getHours()*60+n.getMinutes(),h=w===0?null:(w===6?[8,16]:[8,17]);
+  if(h&&m>=h[0]*60&&m<h[1]*60)return 'Регистратура открыта до '+h[1]+':00';
+  return 'Регистратура закрыта, а онлайн-запись работает';
+}
+
+/* ---------- экраны ---------- */
+var V={};
+V.home=function(){
+  var n=st.bookings.filter(function(b){return b.status!=='cancel'}).length;
+  return '<section class="scr">'+
+    '<div class="hero"><img class="logo" src="'+LOGO+'" alt="CITYMED">'+
+      '<h1>Запись на приём</h1>'+
+      '<p>Многопрофильная клиника на Фаробий, 415. Выберите, куда записаться, - это займёт меньше минуты.</p></div>'+
+    '<div class="tiles">'+
+      '<button class="tile primary" data-act="flow" data-v="doctor"><span class="ico">'+ic('steth')+'</span><b>Приём врача</b><small>Кардиолог, невролог, эндокринолог и другие</small></button>'+
+      '<button class="tile" data-act="flow" data-v="diag"><span class="ico">'+ic('scan')+'</span><b>Диагностика</b><small>МРТ, МСКТ, УЗИ, эндоскопия</small></button>'+
+    '</div>'+
+    '<div class="quick">'+
+      '<button class="q" data-act="go" data-v="mine">'+ic('list')+'<span>Мои записи</span>'+(n?'<i class="badge">'+n+'</i>':'')+'</button>'+
+      '<a class="q" href="tel:+998787770103">'+ic('phone')+'<span>Позвонить</span></a>'+
+      '<a class="q" href="'+MAP+'" target="_blank" rel="noopener">'+ic('pin')+'<span>Как доехать</span></a>'+
+    '</div>'+
+    '<div class="card info">'+
+      '<div class="row">'+ic('clock')+'<div><b>'+openNow()+'</b><small>Пн-Пт 8:00-17:00, Сб 8:00-16:00</small></div></div>'+
+      '<div class="row">'+ic('scan')+'<div><b>МРТ - круглосуточно</b><small>Можно записаться и на вечер</small></div></div>'+
+      '<div class="row">'+ic('pin')+'<div><b>ул. Фаробий, 415</b><small>Ориентир - ресторан Фаровон, метро Беруний</small></div></div>'+
+    '</div></section>';
+};
+V.specs=function(){
+  return '<section class="scr"><h2 class="h">Приём врача</h2><p class="sub">Выберите специалиста</p><div class="list">'+
+    SPECS.map(function(s){
+      var docs=DOCTORS.filter(function(d){return d.spec===s.id}),nr=nearestAny(docs);
+      return '<button class="item" data-act="spec" data-v="'+s.id+'"><span class="ico">'+ic(s.icon)+'</span><span class="grow"><b>'+s.name+'</b><small>'+
+        docs.length+' '+plural(docs.length,'врач','врача','врачей')+(nr?' · ближайшее: '+relLow(nr.d)+', '+nr.t:'')+'</small></span>'+ic('chev')+'</button>';
+    }).join('')+'</div></section>';
+};
+V.doctors=function(){
+  var docs=DOCTORS.filter(function(d){return d.spec===st.spec});
+  return '<section class="scr"><h2 class="h">'+specName(st.spec)+'</h2><p class="sub">Выберите врача - покажем свободное время</p>'+
+    docs.map(function(d){
+      var nr=nearest('doc:'+d.id),meta=[docTitle(d)];
+      if(d.exp)meta.push('стаж '+d.exp+' '+plural(d.exp,'год','года','лет'));
+      if(d.extra)meta.push(d.extra);
+      return '<button class="doc" data-act="doc" data-v="'+d.id+'"><span class="ava">'+initials(d.name)+'</span><span class="grow"><b>'+d.name+'</b><small>'+meta.join(' · ')+'</small>'+
+        (nr?'<span class="chip">'+ic('clock')+relDay(nr.d)+', '+nr.t+'</span>':'')+'</span>'+ic('chev')+'</button>';
+    }).join('')+'</section>';
+};
+V.diag=function(){
+  return '<section class="scr"><h2 class="h">Диагностика</h2><p class="sub">Выберите исследование</p><div class="list">'+
+    DIAG.map(function(x){
+      var nr=nearest('diag:'+x.id);
+      return '<button class="item" data-act="diag" data-v="'+x.id+'"><span class="ico">'+ic(x.icon)+'</span><span class="grow"><b>'+x.name+(x.badge?'<i class="tag">'+x.badge+'</i>':'')+'</b><small>'+
+        x.sub+(nr?' · ближайшее: '+relLow(nr.d)+', '+nr.t:'')+'</small></span>'+ic('chev')+'</button>';
+    }).join('')+'</div></section>';
+};
+function whoBlock(){
+  if(st.flow==='doctor'){var d=curDoc();return '<div class="who"><span class="ava">'+initials(d.name)+'</span><span class="grow"><b>'+d.name+'</b><small>'+docTitle(d)+'</small></span></div>'}
+  var x=curDiag();return '<div class="who"><span class="ico">'+ic(x.icon)+'</span><span class="grow"><b>'+x.name+'</b><small>'+x.sub+'</small></span></div>';
+}
+function slotBtn(s){return '<button class="slot'+(st.time===s.t?' on':'')+'" data-act="time" data-v="'+s.t+'"'+(s.off?' disabled':'')+'>'+s.t+'</button>'}
+V.slots=function(){
+  var key=curKey();
+  if(!st.date){var nr=nearest(key);st.date=nr?nr.d:today()}
+  var days=[];for(var i=0;i<14;i++)days.push(addDays(today(),i));
+  var list=slotsFor(st.date,key),parts=[['Утро',0,12],['День',12,17],['Вечер',17,24]];
+  var times=list.length?parts.map(function(p){
+      var xs=list.filter(function(s){var h=+s.t.slice(0,2);return h>=p[1]&&h<p[2]});
+      return xs.length?'<div class="part">'+p[0]+'</div><div class="slots">'+xs.map(slotBtn).join('')+'</div>':'';
+    }).join(''):'<p class="empty">В этот день приёма нет</p>';
+  return '<section class="scr">'+whoBlock()+
+    '<h3 class="h3">Дата</h3><div class="dates" aria-label="Дата">'+days.map(function(d){
+      var has=slotsFor(d,key).some(function(s){return !s.off}),on=ymd(d)===ymd(st.date);
+      return '<button class="date'+(on?' on':'')+'" data-act="date" data-v="'+ymd(d)+'"'+(has?'':' disabled')+' aria-pressed="'+on+'"><small>'+wdS(d)+'</small><b>'+d.getDate()+'</b><i>'+(has?'':(d.getDay()===0?'выходной':'нет мест'))+'</i></button>';
+    }).join('')+'</div>'+
+    '<h3 class="h3">Время <span class="hint">'+relDay(st.date)+'</span></h3>'+times+
+    (st.moving?'<p class="fine" style="margin-top:14px">'+ic('info')+'<span>Переносим запись № '+st.moving+'. Старое время освободится автоматически.</span></p>':'')+
+  '</section>';
+};
+V.details=function(){
+  return '<section class="scr"><div class="card summary-mini">'+whoBlock()+'<div class="when">'+ic('calendar')+longDate(st.date)+', '+st.time+'</div></div>'+
+    '<h3 class="h3">Кто идёт на приём</h3>'+
+    '<button class="tgfill" data-act="fill">'+ic('send')+'Взять имя и номер из Telegram</button>'+
+    '<label class="field"><span>Имя и фамилия</span><input id="f-name" autocomplete="name" value="'+esc(st.name)+'" placeholder="Например, Алишер Тошматов"></label>'+
+    '<label class="field"><span>Телефон</span><input id="f-phone" type="tel" inputmode="tel" autocomplete="tel" value="'+esc(st.phone)+'"></label>'+
+    '<label class="field"><span>Комментарий для врача <em>(необязательно)</em></span><textarea id="f-note" rows="2" placeholder="Жалобы или вопрос">'+esc(st.note)+'</textarea></label>'+
+    '<label class="consent"><input type="checkbox" id="f-ok"'+(st.consent?' checked':'')+'><span>Согласен на обработку персональных данных</span></label>'+
+    '<p class="fine">'+ic('bell')+'<span>Напомним о приёме за день и за 2 часа - в этом же чате.</span></p></section>';
+};
+V.done=function(){
+  var b=st.current;
+  return '<section class="scr center"><div class="okmark">'+ic('check')+'</div>'+
+    '<h2 class="h">'+(b.moved?'Запись перенесена':'Вы записаны')+'</h2>'+
+    '<p class="sub">'+(st.aurora==='api'?'Время уже закреплено за вами в расписании клиники.':'Администратор подтвердит запись, подтверждение придёт сюда.')+'</p>'+
+    '<div class="card ticket">'+
+      '<div class="row">'+ic(b.kind==='doctor'?'user':'scan')+'<div><b>'+b.title+'</b><small>'+(b.person||b.sub)+'</small></div></div>'+
+      '<div class="row">'+ic('calendar')+'<div><b>'+longDate(b.date)+', '+b.time+'</b><small>Запись № '+b.id+'</small></div></div>'+
+      '<div class="row">'+ic('pin')+'<div><b>ул. Фаробий, 415</b><small>Ориентир - ресторан Фаровон</small></div></div>'+
+      (b.prep?'<div class="row">'+ic('info')+'<div><b>Пришлём памятку по подготовке</b><small>Накануне исследования, в этот же чат</small></div></div>':'')+
+    '</div>'+
+    '<div class="btnrow"><button class="ghost" data-act="ics">'+ic('calendar')+'В календарь</button><a class="ghost" href="'+MAP+'" target="_blank" rel="noopener">'+ic('route')+'Маршрут</a></div>'+
+    '<div class="next"><p>Что дальше</p>'+
+      '<button class="link" data-act="go" data-v="remind">'+ic('bell')+'Как выглядит напоминание'+ic('chev')+'</button>'+
+      '<button class="link" data-act="go" data-v="desk">'+ic('desk')+'Что видит ресепшен'+ic('chev')+'</button>'+
+    '</div></section>';
+};
+V.mine=function(){
+  if(!st.bookings.length)return '<section class="scr"><h2 class="h">Мои записи</h2><div class="emptybox">'+ic('calendar')+'<p>Здесь будут ваши записи: дата, врач, адрес и кнопки «Перенести» и «Отменить».</p><button class="ghost" data-act="home">Записаться</button></div></section>';
+  return '<section class="scr"><h2 class="h">Мои записи</h2>'+st.bookings.map(function(b){
+    var off=b.status==='cancel';
+    return '<div class="card mine'+(off?' off':'')+'"><div class="row">'+ic(b.kind==='doctor'?'user':'scan')+'<div class="grow"><b>'+b.title+(b.short?' · '+b.short:'')+'</b><small>'+longDate(b.date)+', '+b.time+' · № '+b.id+(off?' · отменена':'')+'</small></div></div>'+
+      (off?'':'<div class="btnrow"><button class="ghost" data-act="mv" data-id="'+b.id+'">'+ic('calendar')+'Перенести</button><button class="ghost danger" data-act="cx" data-id="'+b.id+'">'+ic('x')+'Отменить</button></div>')+'</div>';
+  }).join('')+'</section>';
+};
+V.remind=function(){
+  var b=st.current;
+  if(!b)return V.mine();
+  var who=b.kind==='doctor'?b.title.toLowerCase()+' '+b.person:b.title;
+  var reply='';
+  if(b.patientOk)reply='<div class="bubble out">Приду<span class="tm">10:02 ✓✓</span></div><div class="bubble in">Спасибо! Ждём вас. Если планы изменятся - нажмите «Перенести».<span class="tm">10:02</span></div>';
+  if(b.status==='cancel')reply='<div class="bubble out">Отменить<span class="tm">10:02 ✓✓</span></div><div class="bubble in">Запись отменена, время освободилось. Записаться снова можно в меню бота.<span class="tm">10:02</span></div>';
+  var locked=b.patientOk||b.status==='cancel';
+  return '<section class="scr chatwrap"><div class="chat-head"><span class="botava">CM</span><div><b>CITYMED · Запись</b><small>бот</small></div></div>'+
+    '<div class="chat wall"><div class="sys">За день до приёма</div>'+
+      '<div class="bubble in"><p>Здравствуйте, '+esc(firstName(b.name))+'! Напоминаем: '+longDate(b.date).toLowerCase()+' в <b>'+b.time+'</b> - '+who+'.</p><p>Адрес: ул. Фаробий, 415, ориентир - ресторан Фаровон.</p><span class="tm">10:00</span></div>'+
+      '<div class="kb"><button data-act="rem" data-v="ok"'+(locked?' disabled':'')+'>✅ Приду</button><button data-act="rem" data-v="move"'+(locked?' disabled':'')+'>🔁 Перенести</button><button data-act="rem" data-v="cancel"'+(locked?' disabled':'')+'>✖ Отменить</button></div>'+
+      reply+
+    '</div><p class="note">Второе напоминание приходит за 2 часа. Ответ пациента ресепшен видит сразу, а при отмене время освобождается для других.</p></section>';
+};
+function segAurora(){
+  return '<div class="seg" role="group" aria-label="Работа с Авророй">'+
+    '<button data-act="aur" data-v="api" class="'+(st.aurora==='api'?'on':'')+'" aria-pressed="'+(st.aurora==='api')+'">С интеграцией Авроры</button>'+
+    '<button data-act="aur" data-v="manual" class="'+(st.aurora==='manual'?'on':'')+'" aria-pressed="'+(st.aurora==='manual')+'">Без интеграции</button></div>';
+}
+function auroraExplain(){
+  return st.aurora==='api'
+    ?'<b>С интеграцией.</b> Свободное время берётся прямо из расписания в Авроре, а новая запись сразу появляется у врача. Администратору ничего переносить не нужно.<small>Возможность интеграции уточняем у разработчика Авроры.</small>'
+    :'<b>Без интеграции.</b> Заявка приходит в Telegram ресепшена. Администратор нажимает «Подтвердить» и вносит запись в Аврору, а пациент автоматически получает подтверждение и напоминания.<small>Можно запустить сразу, не дожидаясь интеграции.</small>';
+}
+function statusOf(b){
+  if(b.status==='cancel')return {c:'bad',t:'✖ Пациент отменил запись - время освободилось'};
+  var p=[];
+  if(st.aurora==='api')p.push('✓ Уже в расписании Авроры');
+  else p.push(b.confirmed?'✓ Подтверждено, пациенту ушло подтверждение':'⏳ Ждёт подтверждения администратора');
+  if(b.moved)p.push('🔁 перенесено пациентом');
+  if(b.patientOk)p.push('✓ пациент подтвердил визит');
+  return {c:(st.aurora==='api'||b.confirmed)?'ok':'wait',t:p.join(' · ')};
+}
+function cardHtml(b,fresh){
+  var s=statusOf(b),off=b.status==='cancel';
+  return '<article class="msg'+(fresh?' new':'')+'"><div class="bubble in"><span class="bname">CITYMED · Запись</span>'+
+    '<p><b>'+(off?'❌ Отмена записи':(b.moved?'🔁 Перенос записи':'🆕 Новая запись'))+' № '+b.id+'</b></p>'+
+    '<p>'+(b.kind==='doctor'?'🩺 '+b.title+' - '+b.short:'🔬 '+b.title)+'</p>'+
+    '<p>🗓 '+longDate(b.date)+', '+b.time+'</p>'+
+    '<p>👤 '+esc(b.name)+', '+esc(b.phone)+'</p>'+
+    (b.note?'<p>💬 «'+esc(b.note)+'»</p>':'')+
+    '<p class="bsrc">Источник: Telegram Mini App</p><span class="tm">'+hm(b.created)+'</span></div>'+
+    (off?'':'<div class="kb two"><button data-act="adm" data-v="confirm" data-id="'+b.id+'"'+(st.aurora==='api'||b.confirmed?' disabled':'')+'>✅ Подтвердить</button><button data-act="adm" data-v="call" data-id="'+b.id+'">📞 Позвонить</button><button data-act="adm" data-v="move" data-id="'+b.id+'">🔁 Перенести</button></div>')+
+    '<span class="stat '+s.c+'">'+s.t+'</span></article>';
+}
+function feedHtml(markNew){
+  var head='<div class="grp"><span class="botava sm">CM</span>CITYMED · Ресепшен <small>группа администраторов</small></div>';
+  if(!st.bookings.length)return head+'<div class="placeholder">Запишитесь в мини-приложении - заявка появится здесь через секунду.</div>';
+  var newest=st.bookings[0].id;
+  return head+st.bookings.map(function(b){return cardHtml(b,markNew&&b.id===newest&&newest>st.synced)}).join('');
+}
+V.desk=function(){
+  return '<section class="scr"><h2 class="h">Экран ресепшена</h2><p class="sub">Так заявка приходит в Telegram-группу администраторов. Переключите режим, чтобы сравнить.</p>'+
+    segAurora()+'<div class="feed wall">'+feedHtml(false)+'</div><div class="how">'+auroraExplain()+'</div></section>';
+};
+
+/* ---------- панель (десктоп) и шторка «О демо» ---------- */
+var POINTS='<ol class="points">'+
+  '<li><span class="n">1</span><span><b>Пациент записывается сам</b> - выбирает врача или исследование, дату и свободное время. Без звонка и в любое время суток.</span></li>'+
+  '<li><span class="n">2</span><span><b>Напоминания за день и за 2 часа</b> с кнопками «Приду», «Перенести», «Отменить» - чтобы было меньше неявок и пустых окон.</span></li>'+
+  '<li><span class="n">3</span><span><b>Ресепшен получает готовую заявку</b> в Telegram-группу, а с интеграцией - сразу в расписание Авроры.</span></li></ol>';
+var BYLINE='<p class="byline">Подготовил Султан · примеры работ: <a href="https://stems.kz" target="_blank" rel="noopener">stems.kz</a>, <a href="https://knopknop.kz" target="_blank" rel="noopener">knopknop.kz</a>, <a href="https://acousticspace.kz" target="_blank" rel="noopener">acousticspace.kz</a></p>';
+function panelHtml(){
+  return '<div class="pbrand"><img class="logo" src="'+LOGO+'" alt="CITYMED"><span class="x">×</span><span class="tgpill">'+ic('send')+'Telegram</span></div>'+
+    '<h1>Онлайн-запись в CITYMED прямо&nbsp;в&nbsp;<em>Telegram</em></h1>'+
+    '<p class="lead">Демо-концепт: пройдите запись в телефоне справа, как это сделает пациент. Врачи и исследования - с сайта клиники, расписание условное, данные никуда не отправляются.</p>'+
+    POINTS+
+    '<section class="deskbox"><h2>'+ic('desk')+'Экран ресепшена<span class="live">в реальном времени</span></h2>'+
+      '<div id="d-seg"></div><div class="feed wall" id="d-feed"></div><div class="how" id="d-how"></div></section>'+BYLINE;
+}
+function sheetHtml(){
+  return '<div class="scrim" data-act="sheet-close"></div><div class="sbody" role="dialog" aria-modal="true" aria-label="О демо"><div class="grab"></div>'+
+    '<h3>Демо-концепт для CITYMED</h3><p>Так может выглядеть онлайн-запись внутри Telegram. Врачи и исследования взяты с сайта клиники, расписание условное, данные никуда не отправляются.</p>'+
+    POINTS+'<div class="how">'+auroraExplain()+'</div>'+BYLINE+
+    '<button class="mainbtn" data-act="sheet-close">Понятно</button></div>';
+}
+
+/* ---------- отрисовка ---------- */
+function deskVisible(){return window.matchMedia('(min-width:1000px)').matches&&!st.tg}
+function mainCfg(){
+  switch(st.screen){
+    case 'slots':
+      if(!st.time)return {label:'Выберите время',ok:false};
+      if(st.moving)return {label:'Перенести на '+relLow(st.date)+', '+st.time,ok:true,run:applyMove};
+      return {label:'Записаться · '+relLow(st.date)+', '+st.time,ok:true,run:function(){go('details')}};
+    case 'details':return {label:'Подтвердить запись',ok:valid(),run:book};
+    case 'done':return {label:'Посмотреть напоминание',ok:true,run:function(){go('remind')}};
+    case 'remind':return {label:'Что видит ресепшен',ok:true,run:function(){go('desk')}};
+    case 'desk':return {label:'Пройти запись ещё раз',ok:true,run:restart};
+    default:return null;
+  }
+}
+function updateChrome(){
+  $('#tg-left').innerHTML=st.stack.length?ic('back')+'<span>Назад</span>':'<span>Закрыть</span>';
+  $('#tg-left').nextElementSibling.nextElementSibling.innerHTML=ic('dots');
+  var cfg=mainCfg(),bar=$('#mainbar'),btn=$('#mainbtn');
+  if(!cfg){bar.hidden=true;st.run=null}
+  else{bar.hidden=false;btn.textContent=cfg.label;btn.disabled=!cfg.ok;st.run=cfg.ok?cfg.run:null}
+  if(st.tg){try{st.stack.length?st.tg.BackButton.show():st.tg.BackButton.hide()}catch(e){}}
+}
+function afterRender(root){
+  (root||document).querySelectorAll('img.logo').forEach(function(img){
+    if(img.dataset.bound)return;img.dataset.bound='1';
+    var fail=function(){var s=document.createElement('span');s.className='logo-txt';s.textContent='CITYMED';img.replaceWith(s)};
+    if(img.complete&&img.naturalWidth===0&&img.src)fail();else img.addEventListener('error',fail);
+  });
+}
+function render(dir){
+  var sc=$('#screens');
+  sc.innerHTML=V[st.screen]();
+  sc.scrollTop=0;
+  if(sc.firstElementChild)sc.firstElementChild.classList.add(dir==='back'?'enter-back':'enter');
+  afterRender(sc);updateChrome();syncDesk();
+  var on=$('.date.on',sc);
+  if(on){var ds=on.parentNode;ds.scrollLeft+=on.getBoundingClientRect().left-ds.getBoundingClientRect().left-16}
+}
+function rerender(){
+  var sc=$('#screens'),top=sc.scrollTop,ds=$('.dates',sc),left=ds?ds.scrollLeft:0;
+  sc.innerHTML=V[st.screen]();
+  sc.scrollTop=top;ds=$('.dates',sc);if(ds)ds.scrollLeft=left;
+  afterRender(sc);updateChrome();syncDesk();
+  var sh=$('#sheet');if(sh.classList.contains('open'))sh.innerHTML=sheetHtml();
+}
+function syncDesk(){
+  if(!deskVisible())return;
+  $('#d-seg').innerHTML=segAurora();
+  $('#d-feed').innerHTML=feedHtml(true);
+  $('#d-how').innerHTML=auroraExplain();
+  if(st.bookings.length)st.synced=Math.max(st.synced,st.bookings[0].id);
+}
+function go(screen,push){
+  if(push!==false)st.stack.push(st.screen);
+  st.screen=screen;render();
+}
+function back(){
+  if($('#sheet').classList.contains('open')){closeSheet();return}
+  if(!st.stack.length){toast('В Telegram эта кнопка закрывает мини-приложение');return}
+  st.screen=st.stack.pop();
+  if(st.screen!=='slots')st.moving=st.screen==='details'?st.moving:null;
+  render('back');
+}
+function restart(){
+  st.flow=st.spec=st.doc=st.diag=st.date=st.time=st.moving=null;st.note='';st.stack=[];
+  st.screen='home';render('back');
+}
+var tt;
+function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2600)}
+function haptic(k){var h=st.tg&&st.tg.HapticFeedback;if(!h)return;try{k==='sel'?h.selectionChanged():h.notificationOccurred('success')}catch(e){}}
+function openSheet(){var s=$('#sheet');s.innerHTML=sheetHtml();s.classList.add('open')}
+function closeSheet(){var s=$('#sheet');s.classList.remove('open');s.innerHTML=''}
+
+/* ---------- действия ---------- */
+function book(){
+  var d=st.flow==='doctor'?curDoc():null,x=st.flow==='diag'?curDiag():null;
+  var b={id:++st.lastId,kind:st.flow,docId:st.doc,spec:st.spec,diagId:st.diag,
+    title:d?docTitle(d):x.name,person:d?d.name:null,short:d?shortName(d.name):null,sub:x?x.sub:'',
+    prep:!!(x&&x.prep),min:x?x.min:30,date:st.date,time:st.time,name:st.name.trim(),phone:st.phone,
+    note:st.note.trim(),status:'new',confirmed:false,patientOk:false,moved:false,created:new Date()};
+  st.bookings.unshift(b);st.current=b;st.note='';
+  haptic('ok');st.stack=['home'];st.screen='done';render();
+  if(deskVisible()){
+    toast('Заявка уже на экране ресепшена слева');
+    var box=$('.deskbox'),r=box.getBoundingClientRect();
+    if(r.bottom>innerHeight||r.top<0)box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+}
+function startMove(b){
+  st.flow=b.kind;st.doc=b.docId;st.spec=b.spec;st.diag=b.diagId;st.date=b.date;st.time=null;st.moving=b.id;st.current=b;
+  go('slots');
+}
+function applyMove(){
+  var b=byId(st.moving);if(!b)return;
+  b.date=st.date;b.time=st.time;b.moved=true;b.confirmed=false;b.patientOk=false;b.created=new Date();
+  st.bookings=[b].concat(st.bookings.filter(function(x){return x!==b}));
+  st.synced=0;st.moving=null;st.current=b;st.stack=['home'];st.screen='done';render();haptic('ok');
+}
+function downloadIcs(b){
+  if(!b)return;
+  var p=b.time.split(':'),s=new Date(b.date);s.setHours(+p[0],+p[1],0,0);
+  var e=new Date(s.getTime()+(b.min||30)*60000);
+  var f=function(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00'};
+  var ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CITYMED demo//RU','BEGIN:VEVENT','UID:citymed-demo-'+b.id,'DTSTAMP:'+f(new Date()),
+    'DTSTART:'+f(s),'DTEND:'+f(e),'SUMMARY:CITYMED - '+b.title+(b.short?' ('+b.short+')':''),
+    'LOCATION:Ташкент\\, ул. Фаробий\\, 415','DESCRIPTION:Запись № '+b.id+' (демо)','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));
+  a.download='citymed-'+b.id+'.ics';document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},800);
+  toast('Файл события для календаря скачан');
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-act]');if(!t)return;
+  var a=t.dataset.act,v=t.dataset.v,id=+t.dataset.id;
+  switch(a){
+    case 'flow':st.flow=v;st.date=null;st.time=null;st.moving=null;go(v==='doctor'?'specs':'diag');break;
+    case 'spec':st.spec=v;go('doctors');break;
+    case 'doc':st.doc=v;st.date=null;st.time=null;haptic('sel');go('slots');break;
+    case 'diag':st.diag=v;st.date=null;st.time=null;haptic('sel');go('slots');break;
+    case 'date':st.date=parseYmd(v);st.time=null;haptic('sel');rerender();break;
+    case 'time':st.time=v;haptic('sel');rerender();break;
+    case 'fill':st.name='Алишер Тошматов';st.phone='+998 90 000-00-00';rerender();toast('В Telegram пациент нажимает «Поделиться», и имя с номером подставляются сами');break;
+    case 'go':go(v);break;
+    case 'home':restart();break;
+    case 'back':back();break;
+    case 'main':if(st.run)st.run();break;
+    case 'ics':downloadIcs(st.current);break;
+    case 'sheet':openSheet();break;
+    case 'sheet-close':closeSheet();break;
+    case 'aur':st.aurora=v;rerender();break;
+    case 'mv':startMove(byId(id));break;
+    case 'cx':{var b=byId(id);if(b){b.status='cancel';rerender();toast('Запись отменена, ресепшен это уже видит')}break}
+    case 'rem':{
+      var c=st.current;if(!c)break;
+      if(v==='ok'){c.patientOk=true;haptic('ok');rerender();toast('Ресепшен видит: пациент подтвердил визит')}
+      else if(v==='move'){startMove(c)}
+      else if(v==='cancel'){c.status='cancel';rerender();toast('Время освободилось, ресепшен это уже видит')}
+      break;
+    }
+    case 'adm':{
+      var bb=byId(id);if(!bb)break;
+      if(v==='confirm'){bb.confirmed=true;rerender();toast('Пациенту ушло подтверждение записи')}
+      else if(v==='call'){toast('Администратор звонит пациенту в одно касание')}
+      else if(v==='move'){toast('Бот предложит пациенту свободное время для переноса')}
+      break;
+    }
+  }
+});
+document.addEventListener('input',function(e){
+  var el=e.target;
+  if(el.id==='f-name')st.name=el.value;
+  else if(el.id==='f-phone'){var f=fmtPhone(el.value);if(el.value!==f)el.value=f;st.phone=f}
+  else if(el.id==='f-note')st.note=el.value;
+  else return;
+  updateChrome();
+});
+document.addEventListener('change',function(e){if(e.target.id==='f-ok'){st.consent=e.target.checked;updateChrome()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSheet()});
+window.matchMedia('(min-width:1000px)').addEventListener('change',function(){syncDesk()});
+
+/* ---------- запуск, в том числе внутри Telegram ---------- */
+function tick(){var n=new Date();$('#sb-time').textContent=n.getHours()+':'+pad(n.getMinutes())}
+function initTg(){
+  var tg=window.Telegram&&window.Telegram.WebApp;
+  if(!tg||!tg.initData||st.tg)return;
+  st.tg=tg;document.documentElement.classList.add('in-tg');
+  try{tg.ready();tg.expand();tg.setHeaderColor('#ffffff');tg.setBackgroundColor('#F2F7FA');tg.BackButton.onClick(back)}catch(e){}
+  updateChrome();
+}
+$('#panel').innerHTML=panelHtml();afterRender($('#panel'));
+render();tick();setInterval(tick,30000);
+if(window.Telegram&&window.Telegram.WebApp)initTg();
+else{var sdk=document.getElementById('tgsdk');if(sdk)sdk.addEventListener('load',initTg)}
+})();
+</script>
+</body>
+</html>
